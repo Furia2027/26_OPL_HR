@@ -1,0 +1,6 @@
+uint64 raw_track_id   # Temporary track ID (or 0 to automatically pick closest person)
+string name           # Optional name (e.g., "Alice"). Defaults to "Person_X" if empty
+---
+bool success
+string message
+uint64 persistent_id

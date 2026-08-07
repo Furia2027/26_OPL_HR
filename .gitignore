@@ -1,0 +1,8 @@
+#VS Code & Cache
+.vscode/
+
+models/
+
+build/
+install/
+log/
