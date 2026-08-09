@@ -3,7 +3,7 @@
 #include <geometry_msgs/msg/point.hpp>
 #include <opl_interfaces/srv/enroll_person.hpp>
 #include <algorithm>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 
 namespace opl_human_vision {
 

@@ -1,6 +1,6 @@
 #include "opl_human_vision/human_tracker_node.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 #include <algorithm>
 #include <vector>
 #include <mutex>

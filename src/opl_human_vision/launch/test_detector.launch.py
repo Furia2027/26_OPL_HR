@@ -13,7 +13,7 @@ def generate_launch_description():
 
     # Default model file paths
     default_detector_model = os.path.join(models_dir, 'yolov8n-pose.engine')
-    default_scrfd_model    = os.path.join(models_dir, 'scrfd_2.5g_2.engine')
+    default_scrfd_model    = os.path.join(models_dir, 'scrfd_2.5g.engine')
     default_adaface_model  = os.path.join(models_dir, 'adaface_ir50.engine')
     default_osnet_model    = os.path.join(models_dir, 'osnet_x1_0.engine')
 
