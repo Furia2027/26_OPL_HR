@@ -18,13 +18,17 @@ https://docs.google.com/document/d/1AXH329UweO3HN9avNHV6fKshVtfs3GVqtQvc72vNd1s/
 
 ### Executing program
 
+* Remember to source the workspace first
+```
+source install/setup.bash
+```
 * Launching the whole system
 ```
 ros2 launch opl_human_vision test_detector.launch.py
 ```
-* Remember to source the workspace first
+* Assign Name for tracked person (Temporary Testing)
 ```
-source install/setup.bash
+ros2 service call /face_recognizer_node/enroll_person opl_interfaces/srv/EnrollPerson "{raw_track_id: 1, name: 'Lucas'}"
 ```
 
 ## Authors
