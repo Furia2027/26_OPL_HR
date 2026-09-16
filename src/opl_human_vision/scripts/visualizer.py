@@ -21,9 +21,8 @@ class PipelineVisualizer(Node):
         image_topic = self.get_parameter('image_topic').get_parameter_value().string_value
         recognized_topic = self.get_parameter('recognized_topic').get_parameter_value().string_value
 
-        self.latest_frame = None
+        self.latest_image_msg = None
         self.latest_humans = []
-        self.frame_updated = False
         self.first_frame_received = False
 
         # Create a dummy frame so the window pops up immediately
@@ -32,9 +31,9 @@ class PipelineVisualizer(Node):
                     cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2)
 
         image_qos = QoSProfile(
-            reliability=ReliabilityPolicy.RELIABLE,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
             history=HistoryPolicy.KEEP_LAST,
-            depth=5
+            depth=1
         )
 
         self.image_sub = self.create_subscription(
@@ -48,32 +47,46 @@ class PipelineVisualizer(Node):
             TrackedHumanArray,
             recognized_topic,
             self.recognized_callback,
-            qos_profile_sensor_data
+            image_qos
         )
-        self.render_timer = self.create_timer(1.0 / 30.0, self.render_frame)
+        self.render_timer = self.create_timer(1.0 / 15.0, self.render_frame)
 
         self.get_logger().info(f"Visualizer subscribed to '{image_topic}' & '{recognized_topic}'")
 
     def image_callback(self, msg):
-        try:
-            if not self.first_frame_received:
-                self.get_logger().info(f"First image received! Resolution: {msg.width}x{msg.height}")
-                self.first_frame_received = True
+        if not self.first_frame_received:
+            self.get_logger().info(
+                f"First image received! Resolution: {msg.width}x{msg.height}"
+            )
+            self.first_frame_received = True
 
-            self.latest_frame = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-            self.frame_updated = True
-        except Exception as e:
-            self.get_logger().error(f"cv_bridge exception: {e}")
+        # Very cheap callback.
+        # Keep only the newest ROS image message.
+        self.latest_image_msg = msg
 
     def recognized_callback(self, human_msg):
         self.latest_humans = human_msg.humans
 
     def render_frame(self):
-        if self.frame_updated and self.latest_frame is not None:
-            self.frame_updated = False
+        if self.latest_image_msg is not None:
 
-            display_frame = self.latest_frame.copy()
+            # Consume the newest image.
+            msg = self.latest_image_msg
+            self.latest_image_msg = None
+
+            try:
+                display_frame = self.bridge.imgmsg_to_cv2(
+                    msg,
+                    desired_encoding='bgr8'
+                )
+            except Exception as e:
+                self.get_logger().error(
+                    f"cv_bridge exception: {e}"
+                )
+                return
+
             humans = self.latest_humans
+
             img_h, img_w = display_frame.shape[:2]
 
             for human in humans:
