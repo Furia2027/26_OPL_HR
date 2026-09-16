@@ -1,4 +1,5 @@
 #include "opl_human_vision/face_recognizer_node.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include <geometry_msgs/msg/point.hpp>
 #include <opl_interfaces/srv/enroll_person.hpp>
@@ -168,6 +169,7 @@ void FaceRecognizerNode::imageCallback(const sensor_msgs::msg::Image::ConstShare
 
 void FaceRecognizerNode::trackedHumansCallback(const opl_interfaces::msg::TrackedHumanArray::ConstSharedPtr msg) {
   if (!recognized_pub_->is_activated()) return;
+  ScopedTiming timing("Recognizer.callback_total");
 
   cv::Mat frame_ref;
   rclcpp::Time target_time(msg->header.stamp);
@@ -176,6 +178,7 @@ void FaceRecognizerNode::trackedHumansCallback(const opl_interfaces::msg::Tracke
   {
     std::lock_guard<std::mutex> lock(frame_mutex_);
     if (frame_buffer_.empty()) {
+      RCLCPP_INFO(rclcpp::get_logger("vision_timing"), "[timing] Recognizer skipped: image buffer empty");
       recognized_pub_->publish(*msg);
       return;
     }
@@ -194,6 +197,8 @@ void FaceRecognizerNode::trackedHumansCallback(const opl_interfaces::msg::Tracke
   }
 
   if (frame_ref.empty() || min_diff > 0.10) {
+    RCLCPP_INFO(rclcpp::get_logger("vision_timing"),
+      "[timing] Recognizer skipped: no image within 100ms, nearest_diff_ms=%.3f", min_diff * 1000.0);
     recognized_pub_->publish(*msg);
     return;
   }
@@ -275,6 +280,7 @@ void FaceRecognizerNode::trackedHumansCallback(const opl_interfaces::msg::Tracke
 
         FaceResult result;
         {
+          ScopedTiming lock_and_process_timing("Recognizer.engine_lock_and_process");
           std::lock_guard<std::mutex> gpu_lock(engine_mutex_);
           result = face_engine_->processFace(human_crop, raw_track_id, assigned_ids_in_frame);
         }

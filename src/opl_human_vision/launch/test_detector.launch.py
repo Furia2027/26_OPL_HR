@@ -2,6 +2,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node, ComposableNodeContainer
@@ -13,7 +14,7 @@ def generate_launch_description():
 
     # Default model file paths
     default_detector_model = os.path.join(models_dir, 'yolov8n-pose.engine')
-    default_scrfd_model    = os.path.join(models_dir, 'scrfd_2.5g.engine')
+    default_scrfd_model    = os.path.join(models_dir, 'scrfd_2.5g_2.engine')
     default_adaface_model  = os.path.join(models_dir, 'adaface_ir50.engine')
     default_osnet_model    = os.path.join(models_dir, 'osnet_x1_0.engine')
 
@@ -22,8 +23,9 @@ def generate_launch_description():
     # -------------------------------------------------------------------------
     width_arg   = DeclareLaunchArgument('image_width', default_value='640', description='Camera frame width')
     height_arg  = DeclareLaunchArgument('image_height', default_value='480', description='Camera frame height')
-    fps_arg     = DeclareLaunchArgument('framerate', default_value='60', description='Camera fps')
+    fps_arg     = DeclareLaunchArgument('framerate', default_value='30', description='Camera fps')
     device_arg  = DeclareLaunchArgument('video_device', default_value='0', description='Video device ID')
+    visualizer_arg = DeclareLaunchArgument('enable_visualizer', default_value='false', description='Show the OpenCV visualization window')
 
     # -------------------------------------------------------------------------
     # 2. YOLO Human Detector Node Parameters
@@ -36,7 +38,7 @@ def generate_launch_description():
     # 3. Human Tracker Node Parameters
     # -------------------------------------------------------------------------
     max_age_arg    = DeclareLaunchArgument('tracker_max_age', default_value='30', description='Max frames to persist a lost track')
-    min_hits_arg   = DeclareLaunchArgument('tracker_min_hits', default_value='20', description='Min consecutive detections to confirm a track')
+    min_hits_arg   = DeclareLaunchArgument('tracker_min_hits', default_value='10', description='Min consecutive detections to confirm a track')
     iou_thresh_arg = DeclareLaunchArgument('tracker_iou_threshold', default_value='0.60', description='IoU association threshold for tracking')
 
     # -------------------------------------------------------------------------
@@ -138,7 +140,7 @@ def generate_launch_description():
         ]),
         launch_arguments={
             'align_depth.enable': 'true',
-            'rgb_camera.profile': rs_profile,
+            'depth_module.depth_profile': rs_profile,
             'rgb_camera.color_profile': rs_profile
         }.items()
     )
@@ -150,6 +152,7 @@ def generate_launch_description():
         parameters=[{
             'image_topic': image_topic
         }],
+        condition=IfCondition(LaunchConfiguration('enable_visualizer')),
         output='screen'
     )
 
@@ -162,7 +165,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Camera Arguments
-        width_arg, height_arg, fps_arg, device_arg,
+        width_arg, height_arg, fps_arg, device_arg, visualizer_arg,
         # Detector Arguments
         detector_model_arg, detector_conf_arg, detector_nms_arg,
         # Tracker Arguments

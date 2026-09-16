@@ -1,4 +1,5 @@
 #include "opl_human_vision/human_tracker_node.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include <cv_bridge/cv_bridge.hpp>
 #include <algorithm>
@@ -34,6 +35,7 @@ HumanTrackerNode::on_configure(const rclcpp_lifecycle::State &) {
   float iou_threshold = static_cast<float>(get_parameter("iou_threshold").as_double());
 
   tracker_ = std::make_shared<TrackerEngine>(max_age, min_hits, iou_threshold);
+  RCLCPP_INFO(get_logger(), "Tracker confirmation requires min_hits=%d", min_hits);
 
   tracked_pub_ = create_publisher<opl_interfaces::msg::TrackedHumanArray>(tracked_topic_, rclcpp::SensorDataQoS());
 
@@ -260,6 +262,7 @@ geometry_msgs::msg::Point HumanTrackerNode::compute3DPosition(const cv::Mat& dep
 
 void HumanTrackerNode::detectionsCallback(const opl_interfaces::msg::TrackedHumanArray::ConstSharedPtr msg) {
   if (!tracked_pub_->is_activated()) return;
+  ScopedTiming timing("Tracker.callback_total");
 
   cv_bridge::CvImageConstPtr frame_ptr_copy;
   cv_bridge::CvImageConstPtr depth_ptr_copy;
@@ -288,7 +291,14 @@ void HumanTrackerNode::detectionsCallback(const opl_interfaces::msg::TrackedHuma
     }
   }
 
-  std::vector<Track> active_tracks = tracker_->update(msg->humans, frame_ref);
+  std::vector<Track> active_tracks;
+  {
+    ScopedTiming update_timing("Tracker.update");
+    active_tracks = tracker_->update(msg->humans, frame_ref);
+  }
+  RCLCPP_INFO(rclcpp::get_logger("vision_timing"),
+    "[timing] Tracker frame=%d.%09u detections=%zu confirmed_tracks=%zu",
+    msg->header.stamp.sec, msg->header.stamp.nanosec, msg->humans.size(), active_tracks.size());
 
   opl_interfaces::msg::TrackedHumanArray tracked_array_msg;
   tracked_array_msg.header = msg->header;

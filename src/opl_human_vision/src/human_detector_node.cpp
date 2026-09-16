@@ -1,4 +1,5 @@
 #include "opl_human_vision/human_detector_node.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include <algorithm>
 #include <fstream>
@@ -52,6 +53,7 @@ void HumanDetectorNode::releaseResources() {
 }
 
 bool HumanDetectorNode::loadTensorRTEngine(const std::string& model_path) {
+  ScopedTiming timing("YOLO.load (attempt)");
   releaseResources();
 
   cudaError_t err = cudaSetDevice(device_id_);
@@ -203,6 +205,7 @@ void HumanDetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstShared
   }
 
   try {
+    ScopedTiming timing("YOLO.callback_total");
     cv_bridge::CvImageConstPtr cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::BGR8);
     if (cv_ptr->image.empty()) {
       return;
@@ -233,6 +236,8 @@ void HumanDetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstShared
     std::memcpy(cpu_input_buffer_, blob.ptr<float>(), 3 * channel_size * sizeof(float));
 
     // 3. CUDA Async Inference
+    {
+    ScopedTiming inference_timing("YOLO.inference_and_transfers");
     cudaSetDevice(device_id_);
     cudaMemcpyAsync(gpu_buffers_[0], cpu_input_buffer_, 3 * channel_size * sizeof(float), cudaMemcpyHostToDevice, stream_);
 
@@ -247,6 +252,7 @@ void HumanDetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstShared
 
     cudaMemcpyAsync(cpu_output_buffer_, gpu_buffers_[1], num_channels_ * num_anchors_ * sizeof(float), cudaMemcpyDeviceToHost, stream_);
     cudaStreamSynchronize(stream_);
+    }
 
     // 4. Postprocessing: Parse Predictions
     std::vector<cv::Rect> bboxes;
@@ -342,6 +348,9 @@ void HumanDetectorNode::imageCallback(const sensor_msgs::msg::Image::ConstShared
     }
 
     detection_pub_->publish(detections_msg);
+    RCLCPP_INFO(rclcpp::get_logger("vision_timing"),
+      "[timing] YOLO frame=%d.%09u detections=%zu",
+      msg->header.stamp.sec, msg->header.stamp.nanosec, detections_msg.humans.size());
 
   } catch (const cv_bridge::Exception& e) {
     RCLCPP_ERROR(get_logger(), "cv_bridge exception: %s", e.what());

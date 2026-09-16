@@ -1,4 +1,5 @@
 #include "opl_human_vision/face_engine.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include <iostream>
 #include <cmath>
 #include <algorithm>
@@ -101,6 +102,7 @@ std::vector<float> FaceEngine::computeAverageEmbedding(const std::vector<std::ve
 }
 
 FaceResult FaceEngine::processFace(const cv::Mat& human_crop, uint64_t raw_track_id, const std::set<uint64_t>& occupied_ids) {
+  ScopedTiming timing("FaceEngine.processFace");
   cleanupStalePendingTracks();
 
   FaceResult result;
@@ -264,6 +266,10 @@ FaceResult FaceEngine::processFace(const cv::Mat& human_crop, uint64_t raw_track
     }
 
     double elapsed_sec = std::chrono::duration<double>(now - pending.first_seen).count();
+    RCLCPP_INFO(rclcpp::get_logger("vision_timing"),
+      "[timing] enrollment track=%llu valid_face_frames=%zu/%d elapsed_sec=%.3f/%.3f",
+      static_cast<unsigned long long>(raw_track_id), pending.face_embeddings.size(),
+      min_confirm_frames_, elapsed_sec, min_confirm_duration_sec_);
 
     if (pending.face_embeddings.size() >= static_cast<size_t>(min_confirm_frames_) &&
         elapsed_sec >= min_confirm_duration_sec_) {

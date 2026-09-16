@@ -1,4 +1,5 @@
 #include "opl_human_vision/scrfd_detector.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include <fstream>
 #include <iostream>
 #include <algorithm>
@@ -127,6 +128,7 @@ void ScrfdDetector::cleanup() {
 }
 
 bool ScrfdDetector::init() {
+  ScopedTiming timing("SCRFD.load (attempt)");
 #ifdef HAVE_TENSORRT
   cleanup();
 
@@ -209,6 +211,7 @@ bool ScrfdDetector::init() {
 }
 
 bool ScrfdDetector::detect(const cv::Mat& human_crop, std::vector<cv::Point2f>& out_landmarks, float& out_score) {
+  ScopedTiming timing("SCRFD.detect");
 #ifdef HAVE_TENSORRT
   if (human_crop.empty() || !input_buffer_ || output_tensors_.empty()) return false;
 

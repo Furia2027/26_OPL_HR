@@ -1,4 +1,5 @@
 #include "opl_human_vision/osnet_extractor.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include <iostream>
 #include <fstream>
 #include <cmath>
@@ -49,6 +50,7 @@ void OsnetExtractor::cleanup() {
 }
 
 bool OsnetExtractor::init() {
+  ScopedTiming timing("OSNet.load (attempt)");
 #ifdef HAVE_TENSORRT
   cleanup();
 
@@ -120,6 +122,7 @@ void OsnetExtractor::normalizeL2(std::vector<float>& embedding) {
 }
 
 std::vector<float> OsnetExtractor::extract(const cv::Mat& human_crop) {
+  ScopedTiming timing("OSNet.extract");
   if (human_crop.empty() || human_crop.cols < 16 || human_crop.rows < 16) {
     return {};
   }

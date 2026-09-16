@@ -50,6 +50,7 @@ class PipelineVisualizer(Node):
             self.recognized_callback,
             qos_profile_sensor_data
         )
+        self.render_timer = self.create_timer(1.0 / 30.0, self.render_frame)
 
         self.get_logger().info(f"Visualizer subscribed to '{image_topic}' & '{recognized_topic}'")
 
@@ -123,6 +124,7 @@ class PipelineVisualizer(Node):
 
         if self.rendered_frame is not None:
             cv2.imshow("OPL Human Vision Pipeline", self.rendered_frame)
+            cv2.waitKey(1)
 
 
 def main(args=None):
@@ -130,17 +132,7 @@ def main(args=None):
     node = PipelineVisualizer()
 
     try:
-        while rclpy.ok():
-            # Process one callback (if available), don't block longer than 2ms
-            rclpy.spin_once(node, timeout_sec=0.002)
-
-            # Render frame
-            node.render_frame()
-
-            # Process GTK key/window events
-            key = cv2.waitKey(1) & 0xFF
-            if key == 27:  # Press ESC to exit
-                break
+        rclpy.spin(node)
     except KeyboardInterrupt:
         pass
     finally:
