@@ -15,6 +15,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/TrackedHuman.msg"
   "msg/TrackedHumanArray.msg"
   "srv/EnrollPerson.srv"
+  "msg/FollowingTarget.msg"
+  "srv/SelectTarget.srv"
   DEPENDENCIES std_msgs geometry_msgs sensor_msgs
 )
 

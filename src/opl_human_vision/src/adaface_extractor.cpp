@@ -1,4 +1,5 @@
 #include "opl_human_vision/adaface_extractor.hpp"
+#include "opl_human_vision/scoped_timing.hpp"
 #include <iostream>
 #include <fstream>
 #include <cmath>
@@ -48,6 +49,7 @@ void AdaFaceExtractor::cleanup() {
 }
 
 bool AdaFaceExtractor::init() {
+  ScopedTiming timing("AdaFace.load (attempt)");
 #ifdef HAVE_TENSORRT
   cleanup();
 
@@ -141,6 +143,7 @@ void AdaFaceExtractor::normalizeL2(std::vector<float>& embedding) {
 }
 
 std::vector<float> AdaFaceExtractor::extract(const cv::Mat& aligned_face) {
+  ScopedTiming timing("AdaFace.extract");
   if (aligned_face.empty()) return {};
 
 #ifdef HAVE_TENSORRT

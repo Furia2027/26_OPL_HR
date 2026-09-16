@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(opl_human_vision)
 
 if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
+  set(CMAKE_CXX_STANDARD 20)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -107,14 +107,21 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
-install(DIRECTORY launch config models
+install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+foreach(directory config models)
+  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${directory}")
+    install(DIRECTORY ${directory} DESTINATION share/${PROJECT_NAME})
+  endif()
+endforeach()
 
 install(PROGRAMS
   scripts/webcam_publisher.py
   scripts/visualizer.py
   scripts/lifecycle_activator.py
+  scripts/following_target.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
